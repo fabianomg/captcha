@@ -1,0 +1,13 @@
+version: "3.1"
+services:
+  captcha:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    command: npm start
+    container_name: captcha
+    ports:
+      - "3331:3331"
+    restart: always
+    volumes:
+      - .:/usr/src/captcha

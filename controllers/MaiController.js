@@ -3,102 +3,112 @@
 const twocaptcha = require('../lib/twocaptcha')
 const deathby = require('../lib/deathbycaptcha')
 const amqp = require('amqplib/callback_api');
-const url = "amqp://oxnuultd:HlIacjNxeTxeGVTBzJW5_d7kK84Jda0_@lion.rmq.cloudamqp.com/oxnuultd"
+const url = "amqp://elpatron:EKaXfG4RbMWrvrrX1Fd5rZ@rabbitmq:5672"
+const Logs = require("./model/logs")
 module.exports = {
 
     async getToken(req, res) {
         let site = req.body.site.name
         let dados = req.body;
         let result;
-        console.log(site)
         switch (site) {
             case 'twocaptcha':
                 if (dados.rabbitmq) {
-                    var queue = dados.id + '#' + 'tokenRecaptcha';
-                    var msg = await twocaptcha.GetToken(dados.site.api, dados.googlekey, dados.pageurl);
-
+                    const queue = dados.id + '#' + 'tokenRecaptcha';
                     try {
+                        const msg = await twocaptcha.GetToken(dados.site.api, dados.googlekey, dados.pageurl);
                         if (msg != '') {
                             amqp.connect(url, (error0, connection) => {
-                                if (error0) {
-                                    throw error0;
-                                }
                                 connection.createChannel(async (error1, channel) => {
-                                    if (error1) {
-                                        throw error1;
-                                    }
-
                                     channel.assertQueue(queue, {
                                         durable: false,
                                         autoDelete: true,
                                         expires: 90000
                                     });
                                     channel.sendToQueue(queue, Buffer.from(msg));
-
                                 });
                                 setTimeout(function () {
                                     connection.close();
-                                    //process.exit(0);
-                                }, 500);
+                                }, 800);
                             });
-
-                            result = queue + ' send to RabbitMQ OK'
-                        } else {
-                            result = queue + ''
                         }
-
                     } catch (error) {
-                        return res.json(error.message)
+                        let l = new Logs({ arq: 'MainController#api#captcha', type: 'error', msg: error.message })
+                        l.save();
+                        amqp.connect(url, (error0, connection) => {
+                            connection.createChannel(async (error1, channel) => {
+                                channel.assertQueue(queue, {
+                                    durable: false,
+                                    autoDelete: true,
+                                    expires: 90000
+                                });
+                                channel.sendToQueue(queue, Buffer.from('ERROTOKEN'));
+                            });
+                            setTimeout(function () {
+                                connection.close();
+                            }, 800);
+                        });
                     }
-
-
                 } else {
-                    result = await twocaptcha.GetToken(dados.site.api, dados.googlekey, dados.pageurl)
+                    try {
+                        result = await twocaptcha.GetToken(dados.site.api, dados.googlekey, dados.pageurl)
+                    } catch (error) {
+                        let l = new Logs({ arq: 'ValidationController#api#captcha', type: 'error', msg: error.message })
+                        l.save();
+                        result = {
+                            erro: error.message
+                        }
+                    }
                 }
                 break;
 
             case 'deathbycaptcha':
                 if (dados.rabbitmq) {
                     var queue = dados.id + '#' + 'tokenRecaptcha';
-                    var msg = await twocaptcha.GetToken(dados.site.api, dados.googlekey, dados.pageurl);
-                    if (msg != '') {
-                        try {
-                            if (msg != '') {
-                                amqp.connect(url, (error0, connection) => {
-                                    if (error0) {
-                                        throw error0;
-                                    }
-                                    connection.createChannel(async (error1, channel) => {
-                                        if (error1) {
-                                            throw error1;
-                                        }
-
-                                        channel.assertQueue(queue, {
-                                            durable: false,
-                                            autoDelete: true,
-                                            expires: 90000
-                                        });
-                                        channel.sendToQueue(queue, Buffer.from(msg));
-
+                    try {
+                        var msg = await twocaptcha.GetToken(dados.site.api, dados.googlekey, dados.pageurl);
+                        if (msg != '') {
+                            amqp.connect(url, (error0, connection) => {
+                                connection.createChannel(async (error1, channel) => {
+                                    channel.assertQueue(queue, {
+                                        durable: false,
+                                        autoDelete: true,
+                                        expires: 90000
                                     });
-                                    setTimeout(function () {
-                                        connection.close();
-                                        //process.exit(0);
-                                    }, 500);
+                                    channel.sendToQueue(queue, Buffer.from(msg));
                                 });
-
-                                result = queue + ' send to RabbitMQ OK'
-                            } else {
-                                result = queue + ''
+                                setTimeout(function () {
+                                    connection.close();
+                                }, 800);
+                            });
+                        } else {
+                            try {
+                                result = await deathby.GetToken(dados.site.username, dados.site.password, dados.googlekey, dados.pageurl)
+                            } catch (error) {
+                                let l = new Logs({ arq: 'ValidationController#api#captcha', type: 'error', msg: error.message })
+                                l.save();
+                                result = {
+                                    erro: error.message
+                                }
                             }
-
-                        } catch (error) {
-                            return res.json(error.message)
                         }
-                    } else {
-                        result = await deathby.GetToken(dados.site.username, dados.site.password, dados.googlekey, dados.pageurl)
+                    } catch (error) {
+                        let l = new Logs({ arq: 'ValidationController#api#captcha', type: 'error', msg: error.message })
+                        l.save();
+                        amqp.connect(url, (error0, connection) => {
+                            connection.createChannel(async (error1, channel) => {
+                                channel.assertQueue(queue, {
+                                    durable: false,
+                                    autoDelete: true,
+                                    expires: 90000
+                                });
+                                channel.sendToQueue(queue, Buffer.from('ERROTOKEN'));
+                            });
+                            setTimeout(function () {
+                                connection.close();
+                            }, 800);
+                        });
                     }
-
                     break;
                 }
             default:
@@ -111,19 +121,25 @@ module.exports = {
         let site = req.body.site.name
         let dados = req.body;
         let result;
-
         switch (site) {
             case 'twocaptcha':
-                result = await twocaptcha.GetBalance(dados.site.api)
+                try {
+                    result = await twocaptcha.GetBalance(dados.site.api)
+                } catch (error) {
+                    let l = new Logs({ arq: 'ValidationController#api#captcha', type: 'error', msg: error.message })
+                    l.save();
+                    result = error.message
+                }
                 break;
             case 'deathbycaptcha':
                 try {
-
                     let b = await deathby.GetBalance(dados.site.username, dados.site.password)
                     let r = JSON.parse(b)
                     result = parseFloat((r.balance / 100).toFixed(2))
 
                 } catch (error) {
+                    let l = new Logs({ arq: 'ValidationController#api#captcha', type: 'error', msg: error.message })
+                    l.save();
                     result = error.message
                 }
                 break;

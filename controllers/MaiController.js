@@ -53,7 +53,7 @@ module.exports = {
                     try {
                         result = await twocaptcha.GetToken(dados.site.api, dados.googlekey, dados.pageurl)
                     } catch (error) {
-                        let l = new Logs({ arq: 'ValidationController#api#captcha', type: 'error', msg: error.message })
+                        let l = new Logs({ arq: 'MainController#api#captcha', type: 'error', msg: error.message })
                         l.save();
                         result = {
                             erro: error.message
@@ -85,7 +85,7 @@ module.exports = {
                             try {
                                 result = await deathby.GetToken(dados.site.username, dados.site.password, dados.googlekey, dados.pageurl)
                             } catch (error) {
-                                let l = new Logs({ arq: 'ValidationController#api#captcha', type: 'error', msg: error.message })
+                                let l = new Logs({ arq: 'MainController#api#captcha', type: 'error', msg: error.message })
                                 l.save();
                                 result = {
                                     erro: error.message
@@ -93,7 +93,7 @@ module.exports = {
                             }
                         }
                     } catch (error) {
-                        let l = new Logs({ arq: 'ValidationController#api#captcha', type: 'error', msg: error.message })
+                        let l = new Logs({ arq: 'MainController#api#captcha', type: 'error', msg: error.message })
                         l.save();
                         amqp.connect(url, (error0, connection) => {
                             connection.createChannel(async (error1, channel) => {
@@ -126,7 +126,7 @@ module.exports = {
                 try {
                     result = await twocaptcha.GetBalance(dados.site.api)
                 } catch (error) {
-                    let l = new Logs({ arq: 'ValidationController#api#captcha', type: 'error', msg: error.message })
+                    let l = new Logs({ arq: 'MainController#api#captcha', type: 'error', msg: error.message })
                     l.save();
                     result = error.message
                 }
@@ -138,7 +138,7 @@ module.exports = {
                     result = parseFloat((r.balance / 100).toFixed(2))
 
                 } catch (error) {
-                    let l = new Logs({ arq: 'ValidationController#api#captcha', type: 'error', msg: error.message })
+                    let l = new Logs({ arq: 'MainController#api#captcha', type: 'error', msg: error.message })
                     l.save();
                     result = error.message
                 }

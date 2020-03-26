@@ -14,10 +14,11 @@ module.exports = {
         switch (site) {
             case 'twocaptcha':
                 if (dados.rabbitmq) {
-                    const queue = dados.id + '#' + 'tokenRecaptcha';
+                    const queue = '#'+dados.id + 'token';
                     try {
                         const msg = await twocaptcha.GetToken(dados.site.api, dados.googlekey, dados.pageurl);
-                        if (msg != '') {
+                        let er = msg.substr(0, 2);
+                        if (msg != '' && er == '03') {
                             amqp.connect(url, (error0, connection) => {
                                 connection.createChannel(async (error1, channel) => {
                                     channel.assertQueue(queue, {
@@ -31,7 +32,12 @@ module.exports = {
                                     connection.close();
                                 }, 800);
                             });
+                            //
+                        } else {
+                            let l = new Logs({ arq: 'MainController#api#2captcha', type: 'error', 'msg': msg })
+                            l.save();
                         }
+                        //
                     } catch (error) {
                         let l = new Logs({ arq: 'MainController#api#captcha', type: 'error', msg: error.message })
                         l.save();
@@ -49,9 +55,15 @@ module.exports = {
                             }, 800);
                         });
                     }
+                    //
                 } else {
                     try {
                         result = await twocaptcha.GetToken(dados.site.api, dados.googlekey, dados.pageurl)
+                        let er = result.substr(0, 2);
+                        if (er == '03') {
+                            let l = new Logs({ arq: 'MainController#api#2captcha', type: 'error', 'msg': msg })
+                            l.save();
+                        }
                     } catch (error) {
                         let l = new Logs({ arq: 'MainController#api#captcha', type: 'error', msg: error.message })
                         l.save();
@@ -64,7 +76,7 @@ module.exports = {
 
             case 'deathbycaptcha':
                 if (dados.rabbitmq) {
-                    var queue = dados.id + '#' + 'tokenRecaptcha';
+                    var queue ='#'+ dados.id + 'token';
                     try {
                         var msg = await twocaptcha.GetToken(dados.site.api, dados.googlekey, dados.pageurl);
                         if (msg != '') {
@@ -125,6 +137,11 @@ module.exports = {
             case 'twocaptcha':
                 try {
                     result = await twocaptcha.GetBalance(dados.site.api)
+
+                    if (result == "The key you've provided does not exists.") {
+                        let l = new Logs({ arq: 'MainController#api#captcha#balance', type: 'error', msg: result })
+                        l.save();
+                    }
                 } catch (error) {
                     let l = new Logs({ arq: 'MainController#api#captcha', type: 'error', msg: error.message })
                     l.save();
@@ -132,8 +149,10 @@ module.exports = {
                 }
                 break;
             case 'deathbycaptcha':
+                console.log(dados)
                 try {
-                    let b = await deathby.GetBalance(dados.site.username, dados.site.password)
+                    let b = await deathby.GetBalance('fabianomg2020', 'DaqscLEz.Pb8Zkr')
+                    console.log(b)
                     let r = JSON.parse(b)
                     result = parseFloat((r.balance / 100).toFixed(2))
 

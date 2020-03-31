@@ -4,6 +4,7 @@ var express = require('express');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var mongoose = require("mongoose");
+const redis = require('redis');
 mongoose.connect('mongodb://adminelpatron:Wd4CeFIIrRyM8vUJ7D2YXTKj@mongo:27017/elpatron?authSource=admin',
   {
     useNewUrlParser: true,
@@ -19,6 +20,16 @@ mongoose.connect('mongodb://adminelpatron:Wd4CeFIIrRyM8vUJ7D2YXTKj@mongo:27017/e
     }
   }
 );
+const client = redis.createClient(6379, "redis");
+client.on('connect', (err) => {
+  if (!err) {
+
+    console.log('Redis conexão bem sucedida!');
+  } else {
+    e.log('Error na conexão com o Redis: ' + err);
+  }
+
+});
 const app = express();
 app.use(logger('dev'));
 app.use(express.json());

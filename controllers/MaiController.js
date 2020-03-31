@@ -2,8 +2,8 @@
 
 const twocaptcha = require('../lib/twocaptcha')
 const deathby = require('../lib/deathbycaptcha')
-const amqp = require('amqplib/callback_api');
-const url = "amqp://elpatron:EKaXfG4RbMWrvrrX1Fd5rZ@rabbitmq:5672"
+const Redis = require('redis');
+const Cache = Redis.createClient(6379, "redis");
 const Logs = require("./model/logs")
 module.exports = {
 
@@ -13,47 +13,26 @@ module.exports = {
         let result;
         switch (site) {
             case 'twocaptcha':
-                if (dados.rabbitmq) {
-                    const queue = '#'+dados.id + 'token';
+
+                if (dados.redis) {
                     try {
-                        const msg = await twocaptcha.GetToken(dados.site.api, dados.googlekey, dados.pageurl);
-                        let er = msg.substr(0, 2);
-                        if (msg != '' && er == '03') {
-                            amqp.connect(url, (error0, connection) => {
-                                connection.createChannel(async (error1, channel) => {
-                                    channel.assertQueue(queue, {
-                                        durable: false,
-                                        autoDelete: true,
-                                        expires: 90000
-                                    });
-                                    channel.sendToQueue(queue, Buffer.from(msg));
-                                });
-                                setTimeout(function () {
-                                    connection.close();
-                                }, 800);
-                            });
-                            //
+
+                        const token = await twocaptcha.GetToken(dados.site.api, dados.googlekey, dados.pageurl);
+                        let er = token.substr(0, 2);
+                        if (token != '' && er == '03') {
+                            Cache.set(req.body.id + 'token', token)
+                            Cache.expire(req.body.id + 'token', 90);
+
                         } else {
-                            let l = new Logs({ arq: 'MainController#api#2captcha', type: 'error', 'msg': msg })
+                            let l = new Logs({ arq: 'MainController#api#2captcha', type: 'error', 'msg': token })
                             l.save();
+                            Cache.set(req.body.id + 'errotoken', token)
                         }
                         //
                     } catch (error) {
                         let l = new Logs({ arq: 'MainController#api#captcha', type: 'error', msg: error.message })
                         l.save();
-                        amqp.connect(url, (error0, connection) => {
-                            connection.createChannel(async (error1, channel) => {
-                                channel.assertQueue(queue, {
-                                    durable: false,
-                                    autoDelete: true,
-                                    expires: 90000
-                                });
-                                channel.sendToQueue(queue, Buffer.from('ERROTOKEN'));
-                            });
-                            setTimeout(function () {
-                                connection.close();
-                            }, 800);
-                        });
+                        ///
                     }
                     //
                 } else {
@@ -61,7 +40,7 @@ module.exports = {
                         result = await twocaptcha.GetToken(dados.site.api, dados.googlekey, dados.pageurl)
                         let er = result.substr(0, 2);
                         if (er == '03') {
-                            let l = new Logs({ arq: 'MainController#api#2captcha', type: 'error', 'msg': msg })
+                            let l = new Logs({ arq: 'MainController#api#2captcha', type: 'error', 'msg': er })
                             l.save();
                         }
                     } catch (error) {
@@ -75,24 +54,12 @@ module.exports = {
                 break;
 
             case 'deathbycaptcha':
-                if (dados.rabbitmq) {
-                    var queue ='#'+ dados.id + 'token';
+                if (dados.redis) {
                     try {
-                        var msg = await twocaptcha.GetToken(dados.site.api, dados.googlekey, dados.pageurl);
-                        if (msg != '') {
-                            amqp.connect(url, (error0, connection) => {
-                                connection.createChannel(async (error1, channel) => {
-                                    channel.assertQueue(queue, {
-                                        durable: false,
-                                        autoDelete: true,
-                                        expires: 90000
-                                    });
-                                    channel.sendToQueue(queue, Buffer.from(msg));
-                                });
-                                setTimeout(function () {
-                                    connection.close();
-                                }, 800);
-                            });
+                        var token = await twocaptcha.GetToken(dados.site.api, dados.googlekey, dados.pageurl);
+                        if (token != '') {
+                            Cache.set(req.body.id + 'token', token)
+                            Cache.expire(req.body.id + 'token', 90);
                         } else {
                             try {
                                 result = await deathby.GetToken(dados.site.username, dados.site.password, dados.googlekey, dados.pageurl)
@@ -107,19 +74,7 @@ module.exports = {
                     } catch (error) {
                         let l = new Logs({ arq: 'MainController#api#captcha', type: 'error', msg: error.message })
                         l.save();
-                        amqp.connect(url, (error0, connection) => {
-                            connection.createChannel(async (error1, channel) => {
-                                channel.assertQueue(queue, {
-                                    durable: false,
-                                    autoDelete: true,
-                                    expires: 90000
-                                });
-                                channel.sendToQueue(queue, Buffer.from('ERROTOKEN'));
-                            });
-                            setTimeout(function () {
-                                connection.close();
-                            }, 800);
-                        });
+
                     }
                     break;
                 }

@@ -74,7 +74,8 @@ module.exports = {
         break;
 
       case "deathbycaptcha":
-        try {
+        if (dados.redis) {
+        } else {
           try {
             result = await deathby.GetToken(
               dados.site.username,
@@ -93,15 +94,7 @@ module.exports = {
               erro: error.message
             };
           }
-        } catch (error) {
-          let l = new Logs({
-            arq: "MainController#api#captcha",
-            type: "error",
-            msg: error.message
-          });
-          l.save();
         }
-
         break;
       default:
         result =

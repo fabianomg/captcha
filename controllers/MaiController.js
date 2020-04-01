@@ -53,14 +53,9 @@ module.exports = {
                 }
                 break;
 
-            case 'deathbycaptcha':
-                if (dados.redis) {
+            case "deathbycaptcha":
                     try {
-                        var token = await twocaptcha.GetToken(dados.site.api, dados.googlekey, dados.pageurl);
-                        if (token != '') {
-                            Cache.set(req.body.id + 'token', token)
-                            Cache.expire(req.body.id + 'token', 90);
-                        } else {
+                       
                             try {
                                 result = await deathby.GetToken(dados.site.username, dados.site.password, dados.googlekey, dados.pageurl)
                             } catch (error) {
@@ -70,14 +65,14 @@ module.exports = {
                                     erro: error.message
                                 }
                             }
-                        }
+                        
                     } catch (error) {
                         let l = new Logs({ arq: 'MainController#api#captcha', type: 'error', msg: error.message })
                         l.save();
 
                     }
-                    break;
-                }
+                
+                break;
             default:
                 result = "nome do site incorreto, envie uma das opções ['twocaptcha','deathbycaptcha']"
                 break;
@@ -104,10 +99,9 @@ module.exports = {
                 }
                 break;
             case 'deathbycaptcha':
-                console.log(dados)
                 try {
-                    let b = await deathby.GetBalance('fabianomg2020', 'DaqscLEz.Pb8Zkr')
-                    console.log(b)
+                    let b = await deathby.GetBalance('elpatron1986', 'Ff209015#')
+                    
                     let r = JSON.parse(b)
                     result = parseFloat((r.balance / 100).toFixed(2))
 

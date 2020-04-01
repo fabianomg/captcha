@@ -74,8 +74,6 @@ module.exports = {
         break;
 
       case "deathbycaptcha":
-        if (dados.redis) {
-        } else {
           try {
             result = await deathby.GetToken(
               dados.site.username,
@@ -94,7 +92,7 @@ module.exports = {
               erro: error.message
             };
           }
-        }
+        
         break;
       default:
         result =

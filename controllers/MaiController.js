@@ -100,7 +100,7 @@ module.exports = {
                 break;
             case 'deathbycaptcha':
                 try {
-                    let b = await deathby.GetBalance('elpatron1986', 'Ff209015#')
+                    let b = await deathby.GetBalance(dados.site.username, dados.site.password)
                     
                     let r = JSON.parse(b)
                     result = parseFloat((r.balance / 100).toFixed(2))

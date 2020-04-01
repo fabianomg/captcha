@@ -72,7 +72,7 @@ module.exports = {
           }
         }
         break;
-
+        
       case "deathbycaptcha":
           try {
             result = await deathby.GetToken(

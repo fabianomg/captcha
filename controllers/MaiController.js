@@ -81,7 +81,9 @@ module.exports = {
               dados.googlekey,
               dados.pageurl
             );
+            console.log(result)
           } catch (error) {
+              console.log(error.message)
             let l = new Logs({
               arq: "MainController#api#captcha",
               type: "error",
